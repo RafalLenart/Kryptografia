@@ -1,44 +1,19 @@
-var crypto = require("crypto");
-var path = require("path");
-var fs = require("fs");
+const crypto = require("crypto");
+const path = require("path");
+const fs = require("fs");
 const passphrase = "mySecret"
 let fieldArray = [];
-/*
-var encryptStringWithRsaPublicKey = function(toEncrypt, relativeOrAbsolutePathToPublicKey) {
-    var absolutePath = path.resolve(relativeOrAbsolutePathToPublicKey);
-    var publicKey = fs.readFileSync(absolutePath, "utf8");
-    var buffer = Buffer.from(toEncrypt);
-    var encrypted = crypto.publicEncrypt(publicKey, buffer);
-    return encrypted.toString("base64");
-};
-*/
 
-var encryptStringWithRsaPublicKey = function(toEncrypt, positionInPublicKeyArray) {
-    var publicKey = publicKeyArray[positionInPublicKeyArray];
-    var buffer = Buffer.from(toEncrypt);
-    var encrypted = crypto.publicEncrypt(publicKey, buffer);
+const encryptStringWithRsaPublicKey = function(toEncrypt, positionInPublicKeyArray) {
+    let publicKey = publicKeyArray[positionInPublicKeyArray];
+    let buffer = Buffer.from(toEncrypt);
+    let encrypted = crypto.publicEncrypt(publicKey, buffer);
     return encrypted.toString("base64");
 };
 
-/*
-var decryptStringWithRsaPrivateKey = function(toDecrypt, relativeOrAbsolutePathtoPrivateKey) {
-    var absolutePath = path.resolve(relativeOrAbsolutePathtoPrivateKey);
-    var privateKey = fs.readFileSync(absolutePath, "utf8");
-    var buffer = Buffer.from(toDecrypt, "base64");
-    const decrypted = crypto.privateDecrypt(
-        {
-            key: privateKey.toString(),
-            passphrase: passphrase,
-        },
-        buffer,
-    )
-    return decrypted.toString("utf8");
-};
-*/
-
-var decryptStringWithRsaPrivateKey = function(toDecrypt, positionInPrivateKeyArray) {
-    var privateKey = privateKeyArray[positionInPrivateKeyArray];
-    var buffer = Buffer.from(toDecrypt, "base64");
+const decryptStringWithRsaPrivateKey = function(toDecrypt, positionInPrivateKeyArray) {
+    let privateKey = privateKeyArray[positionInPrivateKeyArray];
+    let buffer = Buffer.from(toDecrypt, "base64");
     const decrypted = crypto.privateDecrypt(
         {
             key: privateKey.toString(),
@@ -106,6 +81,12 @@ const encrypt = function(object) {
   return temp;
 }
 
+
+
+
+let encryptedData = encrypt(data);
+writeFileSync('inputEncrypted.json', JSON.stringify(encryptedData));
+
 let publicArray=[];
 let privateArray=[];
 for (let i=0 ; i<publicKeyArray.length; i++) {
@@ -116,8 +97,3 @@ for (let i=0 ; i<privateKeyArray.length; i++) {
 }
 writeFileSync('Public.json', JSON.stringify(publicArray));
 writeFileSync('Private.json', JSON.stringify(privateArray));
-
-
-
-let encryptedData = encrypt(data);
-writeFileSync('inputEncrypted.json', JSON.stringify(encryptedData));
