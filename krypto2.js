@@ -16,7 +16,7 @@ const decryptStringWithRsaPrivateKey = function(toDecrypt, positionInPrivateKeyA
     let buffer = Buffer.from(toDecrypt, "base64");
     const decrypted = crypto.privateDecrypt(
         {
-            key: privateKey.toString(),
+            key: privateKey,
             passphrase: passphrase,
         },
         buffer,
@@ -52,7 +52,7 @@ function generateKeys() {
 const data = require("./input.json");
 const publicFields = require("./publicFields.json");
 
-const encrypt = function(object) {
+const encrypt = function(object) {                                              //encryption function
   let temp = Object.entries(object);
 
   temp.forEach(element => {                                                     //forEach key-value pair
@@ -83,9 +83,42 @@ const encrypt = function(object) {
 
 
 
+const decrypt = function(object) {                                              //Decryption function
+  let temp = Object.entries(object);
+  let counter = 0;
+  temp.forEach(element => {                                                     //forEach key-value pair
+
+    if (typeof element[1] === "object" && !Array.isArray(element[1])) {         //if the value is an object
+      element[1] = decrypt(element[1]);
+
+    } else if (typeof element[1] === "object" && Array.isArray(element[1])) {   //if it's an array
+
+      for (let i = 0; i<element[1].length; i++) {                               //cycle through and encrypt each object in the array
+        element[1][i] = decrypt(element[1][i]);
+      }
+    } else {                                                                    // if it's of a different type
+
+      publicFields.forEach(field => {
+        if (element[0] === field) {
+            console.log(decryptStringWithRsaPrivateKey(`${element[1]}`, counter));
+            element[1] = decryptStringWithRsaPrivateKey(`${element[1]}`, counter);
+            counter++;
+        }
+      });
+    }
+  });
+
+  temp = Object.fromEntries(temp);                                              //transform the array back into a normal object
+  return temp;
+}
+
+
+
 
 let encryptedData = encrypt(data);
 writeFileSync('inputEncrypted.json', JSON.stringify(encryptedData));
+let decryptedData = decrypt(encryptedData);
+writeFilesync('data.json', JSON.stringify(decryptedData));
 
 let publicArray=[];
 let privateArray=[];
