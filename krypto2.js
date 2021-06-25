@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 const path = require("path");
-const  fs = require("fs");
+const fs = require("fs");
 let publicArray=[];
 let privateArray=[];
 const passphrase = "mySecret";
@@ -48,93 +48,183 @@ function generateKeys() {
     privateArray.push([privateKey]);
 }
 
-const data = require("./input.json");
-const publicFields = require("./publicFields.json");
-
 let fieldCount = 0;
+const encryptRAW = function(object, publicFields) {                                                           //encryption function
 
-const encrypt = function(object) {                                              //encryption function
-  let temp = Object.entries(object);
+    let temp = Object.entries(object);
 
-  temp.forEach(element => {                                                     //forEach key-value pair
+    temp.forEach(element => {                                                                           //forEach key-value pair
 
-    if (typeof element[1] === "object" && !Array.isArray(element[1])) {         //if the value is an object
-      element[1] = encrypt(element[1]);
+        if (typeof element[1] === "object" && !Array.isArray(element[1])) {                             //if the value is an object
+            element[1] = encryptRAW(element[1], publicFields);
 
-    } else if (typeof element[1] === "object" && Array.isArray(element[1])) {   //if it's an array
+        } else if (typeof element[1] === "object" && Array.isArray(element[1])) {                       //if it's an array
 
-      for (let i = 0; i<element[1].length; i++) {                               //cycle through and encrypt each object in the array
-        element[1][i] = encrypt(element[1][i]);
-      }
-    } else {                                                                    // if it's of a different type
+            for (let i = 0; i<element[1].length; i++) {                                                 //cycle through and encrypt each object in the array
+                element[1][i] = encryptRAW(element[1][i], publicFields);
+            }
+        } else {                                                                                        // if it's of a different type
 
-      publicFields.forEach(field => {
-        if (element[0] === field) {
-          generateKeys();
-          publicArray[fieldCount].push(field);
-          fieldCount++;
-          element[1] = encryptStringWithRsaPublicKey(`${element[1]}`, publicArray.length - 1);
+            publicFields.forEach(field => {
+                if (element[0] === field) {
+                    generateKeys();
+                    publicArray[fieldCount].push(field);
+                    privateArray[fieldCount].push(field);
+                    fieldCount++;
+                    element[1] = encryptStringWithRsaPublicKey(`${element[1]}`, publicArray.length - 1);
+                }
+            });
         }
-      });
-    }
-  });
+    });
 
-  temp = Object.fromEntries(temp);                                              //transform the array back into a normal object
-  return temp;
+    temp = Object.fromEntries(temp);                                                                    //transform the array back into a normal object
+    return temp;
+}
+
+const reencryptRAW = function(object, publicFields) {                                                           //encryption function
+
+    let temp = Object.entries(object);
+
+    temp.forEach(element => {                                                                           //forEach key-value pair
+
+        if (typeof element[1] === "object" && !Array.isArray(element[1])) {                             //if the value is an object
+            element[1] = reencryptRAW(element[1], publicFields);
+
+        } else if (typeof element[1] === "object" && Array.isArray(element[1])) {                       //if it's an array
+
+            for (let i = 0; i<element[1].length; i++) {                                                 //cycle through and encrypt each object in the array
+                element[1][i] = reencryptRAW(element[1][i], publicFields);
+            }
+        } else {                                                                                        // if it's of a different type
+
+            publicFields.forEach(field => {
+                if (element[0] === field) {
+                    element[1] = encryptStringWithRsaPublicKey(`${element[1]}`, counter);
+                    counter++
+                }
+            });
+        }
+    });
+
+    temp = Object.fromEntries(temp);                                                                    //transform the array back into a normal object
+    return temp;
 }
 
 
 let counter = 0;
-const decrypt = function(object) {                                              //Decryption function
-  let temp = Object.entries(object);
-  temp.forEach(element => {                                                     //forEach key-value pair
+const decryptRAW = function(object, publicFields) {                                                           //Decryption function
 
-    if (typeof element[1] === "object" && !Array.isArray(element[1])) {         //if the value is an object
-      element[1] = decrypt(element[1]);
+    let temp = Object.entries(object);
 
-    } else if (typeof element[1] === "object" && Array.isArray(element[1])) {   //if it's an array
+    temp.forEach(element => {                                                                           //forEach key-value pair
 
-      for (let i = 0; i<element[1].length; i++) {                               //cycle through and encrypt each object in the array
-        element[1][i] = decrypt(element[1][i]);
-      }
-    } else {                                                                    // if it's of a different type
+        if (typeof element[1] === "object" && !Array.isArray(element[1])) {                             //if the value is an object
+            element[1] = decryptRAW(element[1], publicFields);
 
-      publicFields.forEach(field => {
-        if (element[0] === field) {
-            console.log(decryptStringWithRsaPrivateKey(`${element[1]}`, counter));
-            element[1] = decryptStringWithRsaPrivateKey(`${element[1]}`, counter);
-            counter++;
+        } else if (typeof element[1] === "object" && Array.isArray(element[1])) {                       //if it's an array
+
+            for (let i = 0; i<element[1].length; i++) {                                                 //cycle through and encrypt each object in the array
+                element[1][i] = decryptRAW(element[1][i], publicFields);
+            }
+        } else {                                                                                        // if it's of a different type
+
+            publicFields.forEach(field => {
+                if (element[0] === field) {
+                    console.log(decryptStringWithRsaPrivateKey(`${element[1]}`, counter));
+                    element[1] = decryptStringWithRsaPrivateKey(`${element[1]}`, counter);
+                    counter++;
+                }
+            });
         }
-      });
-    }
-  });
+    });
 
-  temp = Object.fromEntries(temp);                                              //transform the array back into a normal object
-  return temp;
+    temp = Object.fromEntries(temp);                                                                     //transform the array back into a normal object
+    return temp;
 }
 
-function makeDecryptionFile(privateArray, publicFieldsArray) {
-    let keyFile = [];
-    privateArray.forEach((pair)=>{
-        publicFieldsArray.forEach((field)=>{
-            if (pair[1] === field) {
-                keyFile.push(pair);
+
+function makeDecryptionAndReencryptionFile(privateJSONPath, publicJSONPath, publicFieldsArray) {
+
+    privateArray = [];                                                                                //setup for making the Decryption.json file
+    const absolutePathPrivate = path.resolve(privateJSONPath);
+    const privateJSON = require(absolutePathPrivate);
+
+    privateJSON.forEach((pair)=>{                                                                           //forEach key-field pair
+
+        publicFieldsArray.forEach((field)=>{                                                                //forEach field in the publicFieldsArray for the file
+
+            if (pair[1] === field) {                                                                        //if fields match up: push the pair to the new file
+                privateArray.push(pair);
             }
         });
     });
-    writeFileSync('DecryptionFile.json', JSON.stringify(keyFile));
+    writeFileSync('decryptionFile.json', JSON.stringify(privateArray));
+
+
+    const absolutePathPublic = path.resolve(publicJSONPath);                                                //setup for making the Re-encryption.json file
+    const publicJSON = require(absolutePathPublic);
+    publicArray = [];
+
+    publicJSON.forEach((pair)=>{                                                                            //forEach key-field pair
+
+        publicFieldsArray.forEach((field)=>{                                                                //forEach field in the publicFieldsArray for the file
+
+            if (pair[1] === field) {                                                                        //if fields match up: push the pair to the new file
+                publicArray.push(pair);
+            }
+        });
+    });
+    writeFileSync('reencryptionFile.json', JSON.stringify(publicArray));
+    writeFileSync('fields.json', JSON.stringify(publicFieldsArray));
 };
 
+function encrypt (JSONToEncryptPath, publicFieldsFilePath) {
+    fieldCount = 0;
+    publicArray = [];
+    privateArray = [];
+    const JSONToEncrypt = require(path.resolve(JSONToEncryptPath));
+    const publicFields = require(path.resolve(publicFieldsFilePath));
+    const encrypted = encryptRAW (JSONToEncrypt, publicFields);
+    writeFileSync('inputEncrypted.json', JSON.stringify(encrypted));
+    writeFileSync('public.json', JSON.stringify(publicArray));
+    writeFileSync('private.json', JSON.stringify(privateArray));
+    return encrypted;
+}
+
+function decrypt (JSONToDecryptPath, publicFieldsFilePath, decryptionFilePath) {
+    counter = 0;
+    const decryptionFile = require(path.resolve(decryptionFilePath));
+    privateArray = decryptionFile;
+    const JSONToDecrypt = require(path.resolve(JSONToDecryptPath));
+    const publicFields = require(path.resolve(publicFieldsFilePath));
+    decryptedData = decryptRAW (JSONToDecrypt, publicFields);
+    writeFileSync('data.json', JSON.stringify(decryptedData));
+}
+
+function reencrypt (JSONToEncryptPath, publicFieldsFilePath, reencryptionFilePath) {
+    counter = 0;
+    publicArray = require(path.resolve(reencryptionFilePath));
+    const JSONToEncrypt = require(path.resolve(JSONToEncryptPath));
+    const publicFields = require(path.resolve(publicFieldsFilePath));
+    const reencrypted = reencryptRAW (JSONToEncrypt, publicFields);
+    writeFileSync('inputReencrypted.json', JSON.stringify(reencrypted));
+    return reencrypted;
+}
 
 
 
 
 
 
-let encryptedData = encrypt(data);
-writeFileSync('inputEncrypted.json', JSON.stringify(encryptedData));
-let decryptedData = decrypt(encryptedData);
-writeFileSync('data.json', JSON.stringify(decryptedData));
 
-writeFileSync('Public.json', JSON.stringify(publicArray));
-writeFileSync('Private.json', JSON.stringify(privateArray));
+
+
+encrypt('input.json', 'publicFields.json');
+makeDecryptionAndReencryptionFile('private.json', 'public.json', ["type", "name"]);
+decrypt('inputEncrypted.json', 'fields.json', 'decryptionFile.json');
+reencrypt('data.json', 'fields.json', 'reencryptionFile.json');
+
+
+
+
+
