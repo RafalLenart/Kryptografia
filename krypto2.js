@@ -130,7 +130,6 @@ const decryptRAW = function(object, publicFields) {                             
 
             publicFields.forEach(field => {
                 if (element[0] === field) {
-                    console.log(decryptStringWithRsaPrivateKey(`${element[1]}`, counter));
                     element[1] = decryptStringWithRsaPrivateKey(`${element[1]}`, counter);
                     counter++;
                 }
@@ -218,9 +217,8 @@ function reencrypt (JSONToEncryptPath, publicFieldsFilePath, reencryptionFilePat
 
 
 
-
 encrypt('input.json', 'publicFields.json');
-makeDecryptionAndReencryptionFile('private.json', 'public.json', ["type", "name"]);
+makeDecryptionAndReencryptionFile('private.json', 'public.json', ["type", "name", "ppu"]);
 decrypt('inputEncrypted.json', 'fields.json', 'decryptionFile.json');
 reencrypt('data.json', 'fields.json', 'reencryptionFile.json');
 
